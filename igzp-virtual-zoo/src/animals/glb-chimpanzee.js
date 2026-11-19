@@ -48,13 +48,17 @@ function setupChimpModel(model, targetHeight, chimp) {
   // Model is exported facing -Y in Blender (+Z forward in Three.js glTF convention)
   model.rotation.y = 0;
 
-  // Hide the procedural low-poly body and limbs on the chimpanzee
+  // Hide all procedural geometry across the entire hierarchy
   if (chimp.mesh.material) {
     chimp.mesh.material.visible = false;
   }
-  for (const c of chimp.mesh.children) {
-    if (c.isMesh) c.visible = false;
-  }
+  const modelMeshes = new Set();
+  model.traverse(c => { if (c.isMesh) modelMeshes.add(c); });
+  chimp.mesh.traverse(c => {
+    if (c.isMesh && !modelMeshes.has(c)) {
+      c.visible = false;
+    }
+  });
   chimp.mesh.add(model);
 }
 

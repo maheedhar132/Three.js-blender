@@ -55,13 +55,17 @@ function setupLionModel(model, height, animal) {
   model.scale.setScalar(scale);
   model.rotation.y = 0; // Export already faces +Z
 
-  // Hide the procedural low-poly body and fur shells
+  // Hide all procedural geometry across the entire hierarchy
   if (animal.mesh.material) {
     animal.mesh.material.visible = false;
   }
-  for (const c of animal.mesh.children) {
-    if (c.isMesh) c.visible = false;
-  }
+  const modelMeshes = new Set();
+  model.traverse(c => { if (c.isMesh) modelMeshes.add(c); });
+  animal.mesh.traverse(c => {
+    if (c.isMesh && !modelMeshes.has(c)) {
+      c.visible = false;
+    }
+  });
   animal.mesh.add(model);
 }
 

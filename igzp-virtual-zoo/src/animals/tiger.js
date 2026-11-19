@@ -414,13 +414,17 @@ export async function attachWhiteTigerGLB(animals) {
     model.scale.setScalar(scale);
     model.rotation.y = 0; // Model faces +Z in glTF
 
-    // Hide procedural fallback body and fur shells
+    // Hide all procedural geometry across the entire hierarchy
     if (tiger.mesh.material) {
       tiger.mesh.material.visible = false;
     }
-    for (const c of tiger.mesh.children) {
-      if (c.isMesh) c.visible = false;
-    }
+    const modelMeshes = new Set();
+    model.traverse(c => { if (c.isMesh) modelMeshes.add(c); });
+    tiger.mesh.traverse(c => {
+      if (c.isMesh && !modelMeshes.has(c)) {
+        c.visible = false;
+      }
+    });
     tiger.mesh.add(model);
 
     // Three.js AnimationMixer with baked animations
