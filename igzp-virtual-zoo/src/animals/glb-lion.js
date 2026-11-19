@@ -23,8 +23,8 @@ async function getGLTFLoader() {
   return _GLTFLoaderClass;
 }
 
-const URL_MALE_GLB = './Lion-Male-Rigged.web.glb';
-const URL_FEMALE_GLB = './Lioness-Rigged.web.glb';
+const URL_MALE_GLB = './Lion-Male-Rigged.glb';
+const URL_FEMALE_GLB = './Lioness-Rigged.glb';
 const URL_FEMALE_GLB_FALLBACK = './Lioness-Rigged.glb';
 
 const HEIGHT_MALE = 1.15;   // Natural Asiatic male lion shoulder/mane height (metres)
