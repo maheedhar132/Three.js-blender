@@ -1,0 +1,7 @@
+.vercel
+.claude
+tools/
+docs/
+__pycache__/
+Lion-Male.glb
+Lion-Male-Rigged.glb

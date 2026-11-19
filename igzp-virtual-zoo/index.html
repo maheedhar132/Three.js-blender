@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#16231a">
+<meta name="description" content="An unofficial, explorable 3D virtual tour of Indira Gandhi Zoological Park, Visakhapatnam — cycle the visitor routes, observe animals, take virtual photos.">
+<title>IGZP Virtual Zoo — Visakhapatnam</title>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<link rel="stylesheet" href="./src/ui/style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<!-- Entrance screen -->
+<section id="intro" class="screen">
+  <div class="intro-inner">
+    <div class="eyebrow">Virtual Tour · Visakhapatnam, Andhra Pradesh</div>
+    <h1>Indira Gandhi<br>Zoological Park</h1>
+    <p class="lede">Climb on a bicycle and explore the zoo’s forest paths, animal enclosures and lakes. Stop beside any enclosure to watch the animals, learn about them and take a virtual photograph.</p>
+    <div id="loadbar"><div id="loadfill"></div></div>
+    <div id="loadtext">Preparing the zoo…</div>
+    <div class="cta" id="cta" hidden>
+      <button class="primary" id="btnTour">Start Tour</button>
+      <button class="ghost" id="btnExplore">Explore Zoo</button>
+    </div>
+    <div class="intro-links">
+      <button class="link" id="btnIntroGallery">My Gallery</button><span>·</span>
+      <button class="link" id="btnIntroSettings">Settings</button><span>·</span>
+      <a class="link" href="./demos/deep-reef/">See our underwater demo: Deep Reef →</a>
+    </div>
+    <p class="disclaimer">Unofficial virtual reconstruction based on the zoo’s illustrated visitor map, which is <em>not drawn to scale</em>. Layout, distances, animals and facilities are approximate, and the presence of any species at the real zoo is not verified. Cycling here does not mean cycling is permitted in the real zoo.</p>
+  </div>
+</section>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <div id="where"><div id="zoneName">Main Entrance</div><div id="modeName">Bicycle</div></div>
+  <div id="topbar">
+    <button class="icon" id="btnMap" title="Zoo map (M)">Map</button>
+    <button class="icon" id="btnSafari" title="Guided Safari in the electric cart">Safari</button>
+    <button class="icon" id="btnPhoto" title="Photo mode (P)">Photo</button>
+    <button class="icon" id="btnGallery" title="Gallery">Gallery</button>
+    <button class="icon" id="btnMode" title="Switch bicycle / walking">Walk</button>
+    <button class="icon" id="btnSound" title="Sound">Sound</button>
+    <button class="icon" id="btnSettings" title="Settings">⚙</button>
+  </div>
+  <div id="guide" hidden><span id="guideArrow">▲</span><span id="guideText"></span><button class="link" id="guideClear">✕</button></div>
+  <div id="prompt" hidden></div>
+  <canvas id="mini" title="Live map — click to open"></canvas>
+  <div id="speedo"><span id="speedVal">0</span><small>km/h</small></div>
+  <div id="help"></div>
+  <div id="tourbar" hidden>
+    <span id="tourLabel">Guided tour</span>
+    <button class="icon" id="tourPause">Pause</button>
+    <button class="icon" id="tourNext">Next stop</button>
+    <button class="icon" id="tourEnd">End tour</button>
+  </div>
+  <!-- touch controls -->
+  <div id="joy"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button class="round" id="tBrake">Brake</button>
+    <button class="round" id="tAct">E</button>
+    <button class="round" id="tPhoto">📷</button>
+  </div>
+</div>
+
+<div id="caption"></div>
+<div class="bar" id="barT"></div><div class="bar" id="barB"></div>
+<div id="toast"></div>
+<div id="fade"></div>
+
+<!-- Ticket Counter Modal -->
+<div id="ticketModal" class="ticket-modal-backdrop" hidden>
+  <div class="ticket-modal-card" role="dialog" aria-modal="true" aria-labelledby="tmTitle">
+    <button class="close" id="tmClose" title="Close (Escape)">✕</button>
+    <div class="tm-header">
+      <div class="tm-emblem">IGZP</div>
+      <div class="tm-titles">
+        <div class="tm-eyebrow">Indira Gandhi Zoological Park · Visakhapatnam</div>
+        <h2 id="tmTitle" class="tm-title">Visitor Ticket Counter &amp; Mode Selection</h2>
+        <div class="tm-sub">Purchase park admission and choose your travel mode to enter through the main gate</div>
+      </div>
+    </div>
+
+    <div class="tm-options">
+      <!-- Option 1: Walking Tour -->
+      <div class="tm-option-card" id="tmOptWalk" data-mode="walk" tabindex="0">
+        <div class="tm-card-badge">Standard Entry</div>
+        <div class="tm-icon">🚶</div>
+        <div class="tm-card-content">
+          <div class="tm-opt-num">Option 1</div>
+          <h3 class="tm-card-title">Walking Tour</h3>
+          <p class="tm-card-desc">Stroll along shaded forest trails, lakeside boardwalks, and close-up viewing aprons right at enclosure fences.</p>
+          <ul class="tm-card-perks">
+            <li>Walkable access right to all enclosure barriers</li>
+            <li>Take close-up virtual photographs anytime (P)</li>
+            <li>Natural pacing to observe animal behaviors</li>
+          </ul>
+        </div>
+        <button class="primary tm-btn" id="tmBtnWalk" data-mode="walk">Select Walking Tour [1]</button>
+      </div>
+
+      <!-- Option 2: Rental Bicycle -->
+      <div class="tm-option-card" id="tmOptBike" data-mode="bike" tabindex="0">
+        <div class="tm-card-badge tm-badge-pop">Popular Choice</div>
+        <div class="tm-icon">🚲</div>
+        <div class="tm-card-content">
+          <div class="tm-opt-num">Option 2</div>
+          <h3 class="tm-card-title">Rental Bicycle</h3>
+          <p class="tm-card-desc">Cruise across the expansive 625-acre parkland on a park rental bicycle with realistic pedaling, steering and coasting.</p>
+          <ul class="tm-card-perks">
+            <li>Swift travel along paved outer circuits &amp; roads</li>
+            <li>Dismount and walk anytime with [B] key</li>
+            <li>Responsive steering, brake and speed boost</li>
+          </ul>
+        </div>
+        <button class="primary tm-btn" id="tmBtnBike" data-mode="bike">Select Rental Bicycle [2]</button>
+      </div>
+
+      <!-- Option 3: Guided Safari Tram -->
+      <div class="tm-option-card" id="tmOptSafari" data-mode="safari" tabindex="0">
+        <div class="tm-card-badge tm-badge-safari">Guided Experience</div>
+        <div class="tm-icon">🛺</div>
+        <div class="tm-card-content">
+          <div class="tm-opt-num">Option 3</div>
+          <h3 class="tm-card-title">Guided Safari Tram</h3>
+          <p class="tm-card-desc">Board the open electric safari tram for an automated guided excursion through carnivore, herbivore, and wetland zones.</p>
+          <ul class="tm-card-perks">
+            <li>Automated scenic tour stopping at all exhibits</li>
+            <li>Educational audio narration &amp; species facts</li>
+            <li>360° passenger free-look camera &amp; zoom</li>
+          </ul>
+        </div>
+        <button class="primary tm-btn" id="tmBtnSafari" data-mode="safari">Board Safari Tram [3]</button>
+      </div>
+    </div>
+
+    <div class="tm-footer">
+      <div class="tm-ticket-stub">
+        <span><b>VALID:</b> Single-Day Park Admission</span>
+        <span><b>GATE:</b> Main Entry Gate</span>
+        <span><b>CONTROLS:</b> Press [1], [2], or [3] to choose</span>
+      </div>
+      <div class="tm-admit-note">Choosing an option issues your admission pass and admits you through the Main Gate into the zoo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Exhibit panel -->
+<aside id="panel" class="sheet" hidden>
+  <button class="close" data-close="panel">✕</button>
+  <div class="badges" id="pBadges"></div>
+  <h2 id="pName"></h2>
+  <div class="sci" id="pSci"></div>
+  <p id="pDesc"></p>
+  <dl>
+    <dt>Habitat</dt><dd id="pHabitat"></dd>
+    <dt>Conservation</dt><dd id="pCons"></dd>
+    <dt>Did you know?</dt><dd id="pFacts"></dd>
+    <dt>Nearby</dt><dd id="pNear"></dd>
+  </dl>
+  <p class="note" id="pNote"></p>
+  <div class="row">
+    <button class="ghost" id="pNarrate">▶ Narrate</button>
+    <button class="ghost" id="pPhoto">📷 Photo</button>
+  </div>
+  <div class="row actions">
+    <button class="primary" id="pNav">Navigate</button>
+    <button class="ghost" id="pCam">🎥 Camera</button>
+    <button class="ghost" id="pTele">Teleport</button>
+  </div>
+</aside>
+
+<!-- Map -->
+<section id="map" class="screen" hidden>
+  <canvas id="mapCanvas"></canvas>
+  <div id="mapUI">
+    <div class="maptitle">Zoo Map <small>reconstructed from the IGZP visitor map · not to scale</small></div>
+    <div class="maptabs"><button class="tab on" data-view="illustrated">Illustrated</button><button class="tab" data-view="iso">3D Isometric</button><button class="tab" data-view="live">Live · You</button></div>
+    <div class="mapbtns"><button class="icon" id="mapIn">+</button><button class="icon" id="mapOut">−</button><button class="icon" id="mapMe">Me</button><button class="icon" id="mapHead" hidden>Heading-up</button><button class="icon" data-close="map">Close (M)</button></div>
+    <div class="legend"><span><i style="background:#6b6b6b"></i>Tar road</span><span><i style="background:#e39a3c"></i>Walking path</span><span><i style="background:#e0b67e"></i>Enclosure</span><span><i style="background:#5fb0c4"></i>Water</span><span><i style="background:#c0574a"></i>Restricted</span></div>
+  </div>
+  <div class="cartouche"><small>Welcome to</small>Indira Gandhi Zoological Park<em>Visakhapatnam · Total area 625 acres (as stated on the visitor map)</em></div>
+</section>
+<!-- shared exhibit card (2D maps and the isometric view) -->
+<div id="mapCard" class="sheet small" hidden>
+  <button class="close" id="mcClose">✕</button>
+  <h3 id="mcName"></h3><div class="sci" id="mcSci"></div>
+  <div class="row"><button class="primary" id="mcNav">Navigate</button><button class="ghost" id="mcInfo">Info</button><button class="ghost" id="mcCam">🎥 Camera</button><button class="ghost" id="mcTele">Teleport</button></div>
+</div>
+<!-- 3D isometric map overlay -->
+<section id="isoUI" hidden>
+  <div id="isoLabels"></div>
+  <div class="isoTop">
+    <div class="maptitle light">Zoo Map · 3D Isometric <small>drag to rotate · Shift/right-drag to pan · scroll to zoom</small></div>
+    <div class="maptabs"><button class="tab" data-view="illustrated">Illustrated</button><button class="tab on" data-view="iso">3D Isometric</button><button class="tab" data-view="live">Live · You</button></div>
+    <div class="mapbtns"><button class="icon" id="isoRotL">⟲</button><button class="icon" id="isoRotR">⟳</button><button class="icon" id="isoIn">+</button><button class="icon" id="isoOut">−</button><button class="icon" id="isoClose">Close (M)</button></div>
+  </div>
+</section>
+<!-- animal camera mode -->
+<div id="camUI" hidden>
+  <div class="camTop"><span class="rec">● CAMERA</span> <b id="camName"></b> <small id="camNote"></small></div>
+  <div class="photobar">
+    <button class="icon" id="camExit">Exit</button>
+    <button class="icon" id="camOut">−</button>
+    <label class="zoom">Zoom <input type="range" id="camZoom" min="0" max="100" value="35"></label>
+    <button class="icon" id="camIn">+</button>
+    <button class="icon" id="camNext">Next animal</button>
+    <button class="shutter" id="camShoot" title="Take a photo"></button>
+  </div>
+</div>
+<!-- guided safari -->
+<div id="safariUI" hidden>
+  <div class="safariBar">
+    <div class="sfInfo"><small>Guided Safari · electric cart</small><b id="sfWhere">—</b><span id="sfNext"></span><div class="sfProg"><i id="sfFill"></i></div></div>
+    <button class="icon" id="sfPause">Pause</button>
+    <button class="icon" id="sfExit">Exit tour</button>
+  </div>
+  <div class="sfHint">Drag to look around · scroll to zoom · virtual experience, not a booking for a real service</div>
+</div>
+
+<!-- Photo mode -->
+<div id="photoUI" hidden>
+  <div class="frame"><i></i><i></i><i></i><i></i><div class="thirds"></div></div>
+  <div class="photobar">
+    <button class="icon" id="phExit">Exit</button>
+    <label class="zoom">Zoom <input type="range" id="phZoom" min="18" max="75" value="60"></label>
+    <button class="shutter" id="phShoot" title="Capture (Space / Enter)"></button>
+    <label class="zoom"><input type="checkbox" id="phGrid" checked> Grid</label>
+  </div>
+  <div class="phhint">Drag to frame · WASD to shift the camera slightly · scroll to zoom</div>
+</div>
+<div id="flash"></div>
+
+<!-- Gallery -->
+<section id="gallery" class="screen" hidden>
+  <div class="gal-head">
+    <h2>My Gallery</h2>
+    <div class="gal-filters">
+      <select id="gSort"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
+      <select id="gZone"><option value="">All zones</option></select>
+      <select id="gExhibit"><option value="">All exhibits</option></select>
+      <button class="ghost" data-close="gallery">Back to the tour</button>
+    </div>
+  </div>
+  <p class="note">These are virtual photographs of the rendered 3D scene, not real photographs of animals at the zoo. They are stored only in this browser (no cloud sync).</p>
+  <div id="gGrid"></div>
+  <div id="gEmpty" hidden>No photos yet. Press <b>P</b> (or the camera button) during the tour to take one.</div>
+  <div id="viewer" hidden>
+    <img id="vImg" alt="Virtual photograph">
+    <div class="vside">
+      <h3 id="vTitle"></h3>
+      <dl id="vMeta"></dl>
+      <label>Caption <input id="vCaption" maxlength="140" placeholder="Add a caption"></label>
+      <div class="row"><button class="primary" id="vDownload">Download</button><button class="ghost danger" id="vDelete">Delete</button></div>
+      <div class="row"><button class="ghost" id="vPrev">‹ Prev</button><button class="ghost" id="vNext">Next ›</button><button class="ghost" id="vClose">Close</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- Settings -->
+<aside id="settings" class="sheet" hidden>
+  <button class="close" data-close="settings">✕</button>
+  <h2>Settings</h2>
+  <label>Graphics quality <select id="sQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+  <p class="note">Changing quality reloads the zoo.</p>
+  <label>Volume <input type="range" id="sVolume" min="0" max="100" value="70"></label>
+  <label>Look sensitivity <input type="range" id="sSens" min="1" max="10" value="5"></label>
+  <label><input type="checkbox" id="sFps"> Show performance stats</label>
+  <label><input type="checkbox" id="sNarr"> Auto-narrate exhibits</label>
+</aside>
+
+<div id="stats" hidden></div>
+<div id="err" hidden></div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

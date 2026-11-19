@@ -1,0 +1,21 @@
+# Node dependencies
+node_modules/
+.pnpm-store/
+
+# Vercel
+.vercel/
+
+# Python cache & temporary blend backups
+__pycache__/
+*.py[cod]
+*$py.class
+*.blend1
+*.blend2
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agent scratch directory
+scratch/

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "deep-reef",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765"],
+      "port": 8765
+    },
+    {
+      "name": "igzp-zoo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["igzp-virtual-zoo/tools/dev-server.py", "8770"],
+      "port": 8770
+    }
+  ]
+}

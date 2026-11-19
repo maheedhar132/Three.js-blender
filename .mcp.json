@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "aurum-blender": {
+      "command": "C:\\Python314\\python.exe",
+      "args": [
+        "D:\\Personal Projects\\Visual Claude\\tools\\blender-mcp\\server\\aurum_blender_mcp.py",
+        "--port",
+        "9081",
+        "--root",
+        "d:\\Personal Projects\\Visual Claude\\igzp-virtual-zoo",
+        "--blender",
+        "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe"
+      ]
+    }
+  }
+}
